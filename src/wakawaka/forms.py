@@ -9,8 +9,8 @@ from wakawaka.models import Revision
 wiki_app_name = get_wiki_app_name()
 revision_model = get_revision_model()
 wikipage_model = get_wikipage_model()
-revision_model_name = revision_model.__class__.__name__.lower()
-wikipage_model_name = wikipage_model.__class__.__name__.lower()
+revision_model_name = revision_model.__name__.lower()
+wikipage_model_name = wikipage_model.__name__.lower()
 
 class WikiPageForm(forms.Form):
     content = forms.CharField(label=_('Content'), widget=forms.Textarea(attrs={'rows': 30}))
