@@ -32,12 +32,23 @@ def get_wiki_app_name():
     """
     return getattr(settings, 'WIKI_APP', DEFAULT_WIKI_APP)
 
-def get_model():
+def get_wikipage_model():
     """
     Returns the wikipage model class.
     """
-    if get_wiki_app_name() != DEFAULT_WIKI_APP and hasattr(get_wiki_app(), "get_model"):
-        return get_wiki_app().get_model()
+    if get_wiki_app_name() != DEFAULT_WIKI_APP and hasattr(get_wiki_app(), "get_wikipage_model"):
+        return get_wiki_app().get_wikipage_model()
     else:
         from wakawaka.models import WikiPage
         return WikiPage
+
+def get_revision_model():
+    """
+    Returns the revision model class.
+    """
+    if get_wiki_app_name() != DEFAULT_WIKI_APP and hasattr(get_wiki_app(), "get_revision_model"):
+        return get_wiki_app().get_revision_model()
+    else:
+        from wakawaka.models import Revision
+        return Revision
+    

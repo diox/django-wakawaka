@@ -5,13 +5,13 @@ from django.template import Library
 from django.utils.safestring import mark_safe
 from django.core.urlresolvers import reverse
 
-from wakawaka import get_model
+from wakawaka import get_wikipage_model
 from wakawaka.urls import WIKI_SLUG
 
 register = Library()
 
 WIKI_WORDS_REGEX = re.compile(r'\b%s\b' % WIKI_SLUG)
-wikipage_model = get_model()
+wikipage_model = get_wikipage_model()
 
 @register.filter
 def wikify(value):

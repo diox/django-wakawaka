@@ -8,12 +8,13 @@ from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext, ugettext_lazy as _
 from django.core.exceptions import ObjectDoesNotExist
 
-from wakawaka import get_model
+from wakawaka import get_wikipage_model, get_revision_model, get_wiki_app_name
 from wakawaka.forms import WikiPageForm, DeleteWikiPageForm
-from wakawaka.models import Revision
 
 __all__ = ['index', 'page', 'edit', 'revisions', 'changes', 'revision_list', 'page_list']
-wikipage_model = get_model()
+wikipage_model = get_wikipage_model()
+revision_model = get_revision_model()
+wiki_app_name = get_wiki_app_name()
 
 def index(request, template_name='wakawaka/page.html', extra_context={}):
     '''
@@ -32,7 +33,7 @@ def page(request, slug, rev_id=None, template_name='wakawaka/page.html', extra_c
 
         # Display an older revision if rev_id is given
         if rev_id:
-            rev_specific = Revision.objects.get(pk=rev_id)
+            rev_specific = revision_model.objects.get(pk=rev_id)
             if rev.pk != rev_specific.pk:
                 rev_specific.is_not_current = True
             rev = rev_specific
@@ -65,12 +66,12 @@ def edit(request, slug, rev_id=None, template_name='wakawaka/edit.html', extra_c
         initial = {'content': page.current.content}
 
         # Do not allow editing wiki pages if the user has no permission
-        if not request.user.has_perms(('wakawaka.change_wikipage', 'wakawaka.change_revision' )):
+        if not request.user.has_perms(('%s.change_wikipage' % wiki_app_name, '%s.change_revision' % wiki_app_name)):
             return HttpResponseForbidden(ugettext('You don\'t have permission to edit pages.'))
 
         if rev_id:
             # There is a specific revision, fetch this
-            rev_specific = Revision.objects.get(pk=rev_id)
+            rev_specific = revision_model.objects.get(pk=rev_id)
             if rev.pk != rev_specific.pk:
                 rev = rev_specific
                 rev.is_not_current = True
@@ -82,7 +83,7 @@ def edit(request, slug, rev_id=None, template_name='wakawaka/edit.html', extra_c
     except wikipage_model.DoesNotExist:
 
         # Do not allow adding wiki pages if the user has no permission
-        if not request.user.has_perms(('wakawaka.add_wikipage', 'wakawaka.add_revision',)):
+        if not request.user.has_perms(('%s.add_wikipage' % wiki_app_name, '%s.add_revision' % wiki_app_name)):
             return HttpResponseForbidden(ugettext('You don\'t have permission to add wiki pages.'))
 
         page = wikipage_model(slug=slug)
@@ -94,8 +95,8 @@ def edit(request, slug, rev_id=None, template_name='wakawaka/edit.html', extra_c
     # Don't display the delete form if the user has nor permission
     delete_form = None
     # The user has permission, then do
-    if request.user.has_perm('wakawaka.delete_wikipage') or \
-       request.user.has_perm('wakawaka.delete_revision'):
+    if request.user.has_perm('%s.delete_wikipage' % wiki_app_name) or \
+       request.user.has_perm('%s.delete_revision' % wiki_app_name):
         delete_form = wiki_delete_form(request)
         if request.method == 'POST' and request.POST.get('delete'):
             delete_form = wiki_delete_form(request, request.POST)
@@ -162,8 +163,8 @@ def changes(request, slug, template_name='wakawaka/changes.html', extra_context=
         return HttpResponseBadRequest('Bad Request')
 
     try:
-        rev_a = Revision.objects.get(pk=rev_a_id)
-        rev_b = Revision.objects.get(pk=rev_b_id)
+        rev_a = revision_model.objects.get(pk=rev_a_id)
+        rev_b = revision_model.objects.get(pk=rev_b_id)
         page = wikipage_model.objects.get(slug=slug)
     except ObjectDoesNotExist:
         raise Http404
@@ -192,7 +193,7 @@ def revision_list(request, template_name='wakawaka/revision_list.html', extra_co
     Displays a list of all recent revisions.
     '''
     template_context = {
-        'revision_list': Revision.objects.all(),
+        'revision_list': revision_model.objects.all(),
     }
     template_context.update(extra_context)
     return render_to_response(template_name, template_context,
