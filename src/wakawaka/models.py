@@ -2,12 +2,17 @@ from django.db import models
 from django.utils.translation import ugettext_lazy as _
 from django.contrib.auth.models import User
 
-class WikiPage(models.Model):
+from wakawaka import get_model
+
+class BaseWikiPage(models.Model):
+    """
+    An abstract base class that any custom wikipage models probably should
+    subclass.
+    """
     slug = models.CharField(_('slug'), max_length=255)
-    created = models.DateTimeField(_('created'), auto_now_add=True)
-    modified = models.DateTimeField(_('modified'), auto_now=True)
 
     class Meta:
+        abstract = True
         ordering = ['slug']
 
     def __unicode__(self):
@@ -21,8 +26,17 @@ class WikiPage(models.Model):
     def rev(self, rev_id):
         return self.revisions.get(pk=rev_id)
 
+
+class WikiPage(BaseWikiPage):
+    """
+    A Wiki page.
+    """
+    created = models.DateTimeField(_('created'), auto_now_add=True)
+    modified = models.DateTimeField(_('modified'), auto_now=True)
+
+
 class Revision(models.Model):
-    page = models.ForeignKey(WikiPage, related_name='revisions')
+    page = models.ForeignKey(get_model(), related_name='revisions')
     content = models.TextField(_('content'))
     message = models.TextField(_('change message'), blank=True)
     creator = models.ForeignKey(User, blank=True, null=True)

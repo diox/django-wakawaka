@@ -7,10 +7,13 @@ from django.http import HttpResponseRedirect, HttpResponseBadRequest,\
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext, ugettext_lazy as _
 from django.core.exceptions import ObjectDoesNotExist
+
+from wakawaka import get_model
 from wakawaka.forms import WikiPageForm, DeleteWikiPageForm
-from wakawaka.models import WikiPage, Revision
+from wakawaka.models import Revision
 
 __all__ = ['index', 'page', 'edit', 'revisions', 'changes', 'revision_list', 'page_list']
+wikipage_model = get_model()
 
 def index(request, template_name='wakawaka/page.html', extra_context={}):
     '''
@@ -24,7 +27,7 @@ def page(request, slug, rev_id=None, template_name='wakawaka/page.html', extra_c
     Displays a wiki page. Redirects to the edit view if the page doesn't exist.
     '''
     try:
-        page = WikiPage.objects.get(slug=slug)
+        page = wikipage_model.objects.get(slug=slug)
         rev = page.current
 
         # Display an older revision if rev_id is given
@@ -36,7 +39,7 @@ def page(request, slug, rev_id=None, template_name='wakawaka/page.html', extra_c
 
     # The Page does not exist, redirect to the edit form or
     # deny, if the user has no permission to add pages
-    except WikiPage.DoesNotExist:
+    except wikipage_model.DoesNotExist:
         if request.user.is_authenticated():
             return HttpResponseRedirect(reverse('wakawaka_edit', kwargs={'slug': slug}))
         raise Http404
@@ -57,7 +60,7 @@ def edit(request, slug, rev_id=None, template_name='wakawaka/edit.html', extra_c
 
     # Get the page for slug and get a specific revision, if given
     try:
-        page = WikiPage.objects.get(slug=slug)
+        page = wikipage_model.objects.get(slug=slug)
         rev = page.current
         initial = {'content': page.current.content}
 
@@ -76,13 +79,13 @@ def edit(request, slug, rev_id=None, template_name='wakawaka/edit.html', extra_c
 
     # This page does not exist, create a dummy page
     # Note that it's not saved here
-    except WikiPage.DoesNotExist:
+    except wikipage_model.DoesNotExist:
 
         # Do not allow adding wiki pages if the user has no permission
         if not request.user.has_perms(('wakawaka.add_wikipage', 'wakawaka.add_revision',)):
             return HttpResponseForbidden(ugettext('You don\'t have permission to add wiki pages.'))
 
-        page = WikiPage(slug=slug)
+        page = wikipage_model(slug=slug)
         page.is_initial = True
         rev = None
         initial = {'content': _('Describe your new page %s here...' % slug),
@@ -113,10 +116,10 @@ def edit(request, slug, rev_id=None, template_name='wakawaka/edit.html', extra_c
             else:
                 try:
                     # Check that the page already exist
-                    page = WikiPage.objects.get(slug=slug)
-                except WikiPage.DoesNotExist:
+                    page = wikipage_model.objects.get(slug=slug)
+                except wikipage_model.DoesNotExist:
                     # Must be a new one, create that page
-                    page = WikiPage.objects.create(slug=slug)
+                    page = wikipage_model.objects.create(slug=slug)
 
                 form.save(request, page)
 
@@ -136,10 +139,10 @@ def edit(request, slug, rev_id=None, template_name='wakawaka/edit.html', extra_c
 def revisions(request, slug, template_name='wakawaka/revisions.html',
                   extra_context={}):
     '''
-    Displays the list of all revisions for a specific WikiPage
+    Displays the list of all revisions for a specific wikipage_model
     '''
 
-    page = get_object_or_404(WikiPage, slug=slug)
+    page = get_object_or_404(wikipage_model, slug=slug)
     template_context = {
         'page': page,
     }
@@ -161,7 +164,7 @@ def changes(request, slug, template_name='wakawaka/changes.html', extra_context=
     try:
         rev_a = Revision.objects.get(pk=rev_a_id)
         rev_b = Revision.objects.get(pk=rev_b_id)
-        page = WikiPage.objects.get(slug=slug)
+        page = wikipage_model.objects.get(slug=slug)
     except ObjectDoesNotExist:
         raise Http404
 
@@ -200,7 +203,7 @@ def page_list(request, template_name='wakawaka/page_list.html', extra_context={}
     Displays all Pages
     '''
     template_context = {
-        'page_list': WikiPage.objects.order_by('slug'),
+        'page_list': wikipage_model.objects.order_by('slug'),
         'index_slug': getattr(settings, 'WAKAWAKA_DEFAULT_INDEX', 'WikiIndex'),
     }
     template_context.update(extra_context)
