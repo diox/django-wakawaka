@@ -12,9 +12,12 @@ from wakawaka import get_wikipage_model, get_revision_model, get_wiki_app_name
 from wakawaka.forms import WikiPageForm, DeleteWikiPageForm
 
 __all__ = ['index', 'page', 'edit', 'revisions', 'changes', 'revision_list', 'page_list']
-wikipage_model = get_wikipage_model()
-revision_model = get_revision_model()
+
 wiki_app_name = get_wiki_app_name()
+revision_model = get_revision_model()
+wikipage_model = get_wikipage_model()
+revision_model_name = revision_model.__class__.__name__.lower()
+wikipage_model_name = wikipage_model.__class__.__name__.lower()
 
 def index(request, template_name='wakawaka/page.html', extra_context={}):
     '''
@@ -66,7 +69,8 @@ def edit(request, slug, rev_id=None, template_name='wakawaka/edit.html', extra_c
         initial = {'content': page.current.content}
 
         # Do not allow editing wiki pages if the user has no permission
-        if not request.user.has_perms(('%s.change_wikipage' % wiki_app_name, '%s.change_revision' % wiki_app_name)):
+        if not request.user.has_perms(('%s.change_%s' % (wiki_app_name, wikipage_model_name), 
+                                       '%s.change_%s' % (wiki_app_name, revision_model_name))):
             return HttpResponseForbidden(ugettext('You don\'t have permission to edit pages.'))
 
         if rev_id:
@@ -83,7 +87,8 @@ def edit(request, slug, rev_id=None, template_name='wakawaka/edit.html', extra_c
     except wikipage_model.DoesNotExist:
 
         # Do not allow adding wiki pages if the user has no permission
-        if not request.user.has_perms(('%s.add_wikipage' % wiki_app_name, '%s.add_revision' % wiki_app_name)):
+        if not request.user.has_perms(('%s.add_%s' % (wiki_app_name, wikipage_model_name), 
+                                       '%s.add_%s' % (wiki_app_name, revision_model_name))):
             return HttpResponseForbidden(ugettext('You don\'t have permission to add wiki pages.'))
 
         page = wikipage_model(slug=slug)
@@ -95,8 +100,8 @@ def edit(request, slug, rev_id=None, template_name='wakawaka/edit.html', extra_c
     # Don't display the delete form if the user has nor permission
     delete_form = None
     # The user has permission, then do
-    if request.user.has_perm('%s.delete_wikipage' % wiki_app_name) or \
-       request.user.has_perm('%s.delete_revision' % wiki_app_name):
+    if request.user.has_perm('%s.delete_%s' % (wiki_app_name, wikipage_model_name)) or \
+       request.user.has_perm('%s.delete_%s' % (wiki_app_name, revision_model_name)):
         delete_form = wiki_delete_form(request)
         if request.method == 'POST' and request.POST.get('delete'):
             delete_form = wiki_delete_form(request, request.POST)
